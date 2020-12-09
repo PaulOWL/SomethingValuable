@@ -1,0 +1,213 @@
+PROMPT *********** Destruction of types and tables of the database *********
+PROMPT
+DROP TYPE person_type FORCE;
+DROP TYPE student_type FORCE;
+DROP TYPE apprentice_type FORCE;
+DROP TYPE teacher_type FORCE;
+DROP TYPE entreprisetutor_type FORCE;
+DROP TYPE academictutor_type FORCE;
+DROP TABLE person CASCADE CONSTRAINTS;
+DROP TABLE student CASCADE CONSTRAINTS;
+DROP TABLE apprentice CASCADE CONSTRAINTS;
+DROP TABLE teacher CASCADE CONSTRAINTS;
+DROP TABLE academic_tutor CASCADE CONSTRAINTS;
+DROP TABLE entreprise_tutor CASCADE CONSTRAINTS;
+DROP TABLE report CASCADE CONSTRAINTS;
+DROP TABLE evaluation CASCADE CONSTRAINTS;
+DROP TABLE keyword_search CASCADE CONSTRAINTS;
+PROMPT ****** Creation of types giving the hierarchy beetween persons ******
+PROMPT
+/*Types describing the structure and attributes of persons (student, apprentice, teacher, tutors)*/
+CREATE OR REPLACE TYPE person_type AS OBJECT (
+idpers INT,
+firstname VARCHAR2(50),
+lastname VARCHAR2 (50),
+email VARCHAR2(50),
+password VARCHAR2 (50)
+) NOT INSTANTIABLE NOT FINAL;
+/
+CREATE OR REPLACE TYPE student_type UNDER person_type (
+promo NUMBER(4)
+) NOT FINAL;
+/
+CREATE OR REPLACE TYPE apprentice_type UNDER student_type (
+company VARCHAR2 (50)
+);
+/
+CREATE OR REPLACE TYPE teacher_type UNDER person_type (
+speciality VARCHAR2(25)
+);
+/
+CREATE OR REPLACE TYPE academictutor_type UNDER person_type (
+)NOT FINAL;
+/
+CREATE OR REPLACE TYPE entreprisetutor_type UNDER academictutor_type (
+company VARCHAR2(50)
+);
+/
+/*TABLES*/
+/*Person inherited tables*/
+-- =======================================================================
+PROMPT ******************** Table : PERSON *******************************
+-- =======================================================================
+CREATE TABLE person OF person_type(
+CONSTRAINT pk_pers PRIMARY KEY(idpers),
+CONSTRAINT nn_firstname   CHECK(firstname IS NOT NULL),
+CONSTRAINT nn_lastname    CHECK(lastname IS NOT NULL)
+);
+-- =======================================================================
+PROMPT ******************** Table : STUDENT ******************************
+-- =======================================================================
+CREATE TABLE student OF student_type(
+CONSTRAINT pk_stud PRIMARY KEY(idpers),
+CONSTRAINT nn_studlastname     CHECK(lastname IS NOT NULL),
+CONSTRAINT nn_promo      CHECK(promo IS NOT NULL),
+CONSTRAINT nn_studemail     CHECK(email IS NOT NULL),
+CONSTRAINT nn_studpassword     CHECK(password IS NOT NULL),
+CONSTRAINT unique_emailstud   UNIQUE(email)
+);
+-- =======================================================================
+PROMPT ******************** Table : APPRENTICE ***************************
+-- =======================================================================
+CREATE TABLE apprentice OF apprentice_type(
+CONSTRAINT pk_appr PRIMARY KEY(idpers),
+CONSTRAINT nn_apprfirstname        CHECK(firstname IS NOT NULL),
+CONSTRAINT nn_apprlastname     CHECK(lastname IS NOT NULL),
+CONSTRAINT nn_apprpromo      CHECK(promo IS NOT NULL),
+CONSTRAINT nn_appremail     CHECK(email IS NOT NULL),
+CONSTRAINT nn_apprpassword     CHECK(password IS NOT NULL),
+CONSTRAINT nn_apprcompany  CHECK(company IS NOT NULL),
+CONSTRAINT unique_emailappr   UNIQUE(email)
+);
+-- =======================================================================
+PROMPT ******************** Table : TEACHER ******************************
+-- =======================================================================
+CREATE TABLE teacher OF teacher_type(
+CONSTRAINT pk_teac PRIMARY KEY(idpers),
+CONSTRAINT nn_teachlastname     CHECK(lastname IS NOT NULL),
+CONSTRAINT nn_teachemail     CHECK(email IS NOT NULL),
+CONSTRAINT nn_teachpassword     CHECK(password IS NOT NULL),
+CONSTRAINT unique_emailteach   UNIQUE(email)
+);
+-- =======================================================================
+PROMPT ******************** Table : ACADEMIC_TUTOR ***********************
+-- =======================================================================
+CREATE TABLE academic_tutor OF academictutor_type(
+CONSTRAINT pk_acad PRIMARY KEY(idpers),
+CONSTRAINT nn_acadfirstname        CHECK(firstname IS NOT NULL),
+CONSTRAINT nn_acadlastname     CHECK(lastname IS NOT NULL),
+CONSTRAINT nn_academail     CHECK(email IS NOT NULL),
+CONSTRAINT nn_acadpassword     CHECK(password IS NOT NULL),
+CONSTRAINT unique_emailacdemic   UNIQUE(email)
+);
+-- =======================================================================
+PROMPT ******************** Table : ENTREPRISE_TUTOR *********************
+-- =======================================================================
+CREATE TABLE entreprise_tutor OF entreprisetutor_type(
+CONSTRAINT pk_ent PRIMARY KEY(idpers),
+CONSTRAINT nn_entfirstname        CHECK(firstname IS NOT NULL),
+CONSTRAINT nn_entlastname     CHECK(lastname IS NOT NULL),
+CONSTRAINT nn_entemail     CHECK(email IS NOT NULL),
+CONSTRAINT nn_entpassword     CHECK(password IS NOT NULL),
+CONSTRAINT nn_entcompany  CHECK(company IS NOT NULL),
+CONSTRAINT unique_emailentreprise   UNIQUE(email)
+);
+-- =======================================================================
+PROMPT ******************** Table : REPORT *******************************
+-- =======================================================================
+CREATE TABLE report (
+idrep INT PRIMARY KEY,
+title VARCHAR2(50) NOT NULL,
+description VARCHAR(100),
+date_sub DATE DEFAULT NULL,
+status VARCHAR2(13) DEFAULT 'NOT VALIDATED',
+confidentiality VARCHAR2(6) DEFAULT 'NORMAL',
+confidentiality_period NUMBER(2) DEFAULT 0,
+author_id INT,
+company VARCHAR2(20),
+views_number INT DEFAULT 0
+);
+/*Trigger ensuring all report have an existing author among students or apprentices*/
+CREATE OR REPLACE TRIGGER report_student_identity
+BEFORE INSERT OR UPDATE ON report
+FOR EACH ROW
+DECLARE
+num_student INT;
+num_apprentice INT;
+BEGIN
+SELECT COUNT(*) INTO num_student FROM student WHERE idpers = :NEW.author_id;
+SELECT COUNT(*) INTO num_apprentice FROM apprentice WHERE idpers = :NEW.author_id;
+IF num_student = 0 AND num_apprentice = 0 THEN
+RAISE_APPLICATION_ERROR( -1000, 'No student or apprentice corresponding');
+END IF;
+END;
+/
+-- =======================================================================
+PROMPT ******************** Table : EVALUATION ***************************
+-- =======================================================================
+CREATE TABLE evaluation(
+report_id INT UNIQUE NOT NULL,
+entreprise_grade NUMBER(4,2),
+academic_grade NUMBER(4,2),
+entreprise_tutor INT,
+academic_tutor INT,
+CONSTRAINT fk_entreprise foreign key (entreprise_tutor) REFERENCES entreprise_tutor(idpers) ON DELETE CASCADE,
+CONSTRAINT fk_academic foreign key (academic_tutor) REFERENCES academic_tutor(idpers) ON DELETE CASCADE,
+CONSTRAINT fk_report foreign key (report_id) REFERENCES report(idrep) ON DELETE CASCADE
+);
+-- =======================================================================
+PROMPT ******************** Table : KEYWORD_SEARCH ***********************
+-- =======================================================================
+CREATE TABLE keyword_search(
+keyword_id INT GENERATED ALWAYS as IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY,
+keyword VARCHAR2(70) UNIQUE,
+nb_searched INT
+);
+/*automatic update of status of the report (if the report has the 2 grade it will be marked as validated*/
+CREATE OR REPLACE TRIGGER check_evaluation
+AFTER UPDATE OR INSERT ON evaluation
+FOR EACH ROW
+DECLARE
+validated_report INT;
+BEGIN
+IF :NEW.academic_grade IS NOT NULL AND :NEW.entreprise_grade IS NOT NULL THEN
+UPDATE report SET status = 'VALIDATED' WHERE idrep = :NEW.report_id;
+END IF;
+END;
+/
+REM ***********************************************************************
+PROMPT ************************ Creation des donnees **********************
+REM ***********************************************************************
+PROMPT
+INSERT ALL
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(1,'Bottle','poésie','bottle@seegal.fr','bottlepassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(2,'Bolenov','réseau','bolenov@seegal.fr','bolenovpassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(3,'Tonilaclasse','poo','tonilaclasse@seegal.fr','tonilaclassepassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(4,'Pastecnov','sql','pastecnov@seegal.fr','pastecnovpassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(5,'Selector','sql','selector@seegal.fr','selectorpassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(6,'Vilplusplus','poo','vilplusplus@seegal.fr','vilpluspluspassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(7,'Francesca','anglais','francesca@seegal.fr','francescapassword')
+INTO teacher (idpers,lastname, speciality,email,password) VALUES(8,'Pucette','java','pucette@seegal.fr','pucettepassword')
+SELECT * FROM dual;
+VALUES(2,'Une stage pour une PS4','', 'VALIDATED', 'NORMAL',0, 10,'sony',6, TO_DATE('11/07/2019', 'DD/MM/YYYY'));
+VALUES(10,'Une superbe alternance chez Seegal','aprentissage, BDD, développement, web, front, SFR', 'VALIDATED', 'HIGH',10, 18,'sfr',3, TO_DATE('25/12/2019', 'DD/MM/YYYY'));
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 1, 10.2, 15.4, 19, 30);
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 2, 11.2, 12.3, 20, 31);
+INSERT INTO evaluation(report_id,entreprise_tutor, academic_tutor)
+VALUES( 3, 21, 32);
+INSERT INTO evaluation(report_id, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 4, 13.5, 22, 33);
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 5, 14.0, 8.9, 23, 34);
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 6, 10.2, 15.4, 24, 35);
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 7, 9.1, 10.5, 25, 36);
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 8, 11.0, 14.7, 26, 37);
+INSERT INTO evaluation(report_id, entreprise_tutor, academic_tutor)
+VALUES( 9, 27, 38);
+INSERT INTO evaluation(report_id, entreprise_grade, academic_grade, entreprise_tutor, academic_tutor)
+VALUES( 10, 14.9, 16.1, 28, 39);
