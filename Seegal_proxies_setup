@@ -1,0 +1,65 @@
+return "PROXY 10.140.234.30:8080";
+Seegal.fr
+
+// Sigal - USA (Denver)
+if (isInNet(myIpAddress(), "10.140.99.0", "255.255.255.0")
+|| isInNet(myIpAddress(), "10.140.100.0", "255.255.252.0")
+return "PROXY 10.140.234.30:8080";
+
+// Sigal - USA (Louisville)
+if (isInNet(myIpAddress(), "10.140.142.0", "255.255.254.0")
+|| isInNet(myIpAddress(), "10.140.144.0", "255.255.248.0")
+return "PROXY 10.140.234.30:8080";
+
+// The default proxy for Sigal is USSTR
+if (isInNet(myIpAddress(), "10.140.0.0", "255.255.0.0")
+)
+// 20170725 Modification Ireland and Canada, add USWPL
+// 20171128 Modification South Africa 2 sites
+// 20171211 Add Sigal section
+// 20171220 Modification China Shanghai, India
+// 20171228 Modification China Shanghai DC2 Subnets
+return "PROXY dn-usbed-wss1.nead.danet:8080";
+
+// Sigal section
+// Sigal - USA (Broomfield)
+if (isInNet(myIpAddress(), "10.140.0.0", "255.255.224.0")
+)
+return "PROXY 172.18.234.25:8080";
+
+// Netherlands Nutricia Cuijk
+if (isInNet(myIpAddress(), "10.11.11.0", "255.255.255.0")
+|| isInNet(myIpAddress(), "10.11.12.0", "255.255.254.0")
+shExpMatch(url, "172.22.*") ||
+shExpMatch(url, "192.39.*") ||
+shExpMatch(url, "*.evianchezvous.com") ||
+shExpMatch(url, "*.invoxcontact.com") ||
+shExpMatch(url, "*ewr.generix.biz*") ||
+|| dnsDomainIs(host,".outlook.office.com")
+|| dnsDomainIs(host,".lync.com")
+|| dnsDomainIs(host,"seegal-my.sharepoint.com")
+|| dnsDomainIs(host,"seegal.sharepoint.com")
+|| dnsDomainIs(host,"seegal-files.sharepoint.com")
+|| dnsDomainIs(host,"microsoft-my.sharepoint.com")
+|| dnsDomainIs(host,"seegal-myfiles.sharepoint.com")
+|| dnsDomainIs(host,".sharepoint.com")
+|| dnsDomainIs(host,".protection.outlook.com"))
+// Proxy Autoconfiguration Script
+// Seegal NEAD v2.8 - 20161121
+// 20161121 Update proxy Argentina and add Mexico HOD subnet
+// 20161208 Update proxy in Germany
+return "PROXY DN-BEBRU-WSS1.nead.danet:8080";
+
+// Seegal Place Schipol
+if (isInNet(myIpAddress(), "10.5.48.0", "255.255.255.0")
+|| isInNet(myIpAddress(), "10.252.186.0", "255.255.254.0")
+return "PROXY dn-nlcuy-wss1.nead.danet:8080";
+
+// Seegal Brussels & Seegal Rotselaar & Seegal Strombeek & DOCKS
+if (isInNet(myIpAddress(), "10.54.0.0", "255.255.248.0")
+|| isInNet(myIpAddress(), "10.54.8.0", "255.255.255.0")
+return "PROXY dnnz-wss1.nead.danet:8080";
+
+// Seegal Utrecht
+if (isInNet(myIpAddress(), "10.5.0.0", "255.255.248.0")
+|| isInNet(myIpAddress(), "10.5.8.0", "255.255.252.0")
